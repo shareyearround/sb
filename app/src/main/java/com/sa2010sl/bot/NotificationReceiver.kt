@@ -97,6 +97,7 @@ class NotificationReceiver : NotificationListenerService() {
                     // ==========================================
                     val titleSplit = parseTitle(titleObj.toString())
                     val groupName = titleSplit.firstOrNull() ?: ""
+                    val sender = titleSplit.lastOrNull()?.trim() ?: ""
 
                     // Ambil nama pengirim dari MessagingStyle (Paling akurat) atau Fallback ke Title
 val messagingStyle = NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(currentNotification)
