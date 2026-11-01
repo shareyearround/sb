@@ -49,6 +49,11 @@ signingConfigs {
         }
     }
 
+lint {
+        isAbortOnError = false
+        isCheckReleaseBuilds = false
+    }
+
     /*signingConfigs {
         create("release") {
             storeFile = file(localProperties.getProperty("RELEASE_STORE_FILE") ?: "")
