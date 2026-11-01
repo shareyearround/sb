@@ -611,29 +611,56 @@ private fun processSaveRequest(
     onFinished: () -> Unit
 ) {
     scope.launch(Dispatchers.IO) {
-        // 1. Simpan ke Buku Kontak Telepon Android
-        saveContactToPhone(context, item.nama, item.nomor)
-
-        // 2. Tambah ke Master Database (listdb.json)
         val baseDir = Const.getDatabaseDir(context)
+
+        // 1. Buat ID Baru Otomatis (+1) di IndexIdNumber.json
+        val newId = registerUserIndex(context, item.nama)
+
+        // 2. Format Nama Kontak dengan ID (Contoh: "Zero (1)")
+        val contactDisplayName = "${item.nama} ($newId)"
+
+        // 3. Simpan ke Buku Kontak HP dengan format ber-ID
+        saveContactToPhone(context, contactDisplayName, item.nomor)
+
+        // 4. Catat ke Master Database (listdb.json)
         val masterFile = File(baseDir, "listdb.json")
         val masterJson = if (masterFile.exists() && masterFile.readText().isNotBlank()) {
             try { JSONObject(masterFile.readText()) } catch (_: Exception) { JSONObject() }
         } else JSONObject()
 
         val dataUser = JSONObject().apply {
+            put("id", newId)
             put("nama", item.nama)
+            put("display_name", contactDisplayName)
             put("saved_at", System.currentTimeMillis())
         }
         masterJson.put(item.nomor, dataUser)
         masterFile.writeText(masterJson.toString(), Charsets.UTF_8)
 
-        // 3. Buang dari Antrean (pending_queue.json)
+        // 5. Buat File Database Karakter Awal: Nama_ID.json (Contoh: Zero_1.json)
+        val cleanFileName = "${item.nama}_$newId".replace(Regex("[^a-zA-Z0-9\\s]"), "").replace(Regex("\\s+"), "_")
+        val userGameFile = File(baseDir, "$cleanFileName.json")
+        if (!userGameFile.exists()) {
+            val initialUserData = JSONObject().apply {
+                put("id", newId)
+                put("username", contactDisplayName)
+                put("level", 1)
+                put("exp", 0)
+                put("koin", 100)
+                put("ep", 10)
+                put("hp", 20)
+                put("max_hp", 20)
+                put("dead", false)
+            }
+            userGameFile.writeText(initialUserData.toString(), Charsets.UTF_8)
+        }
+
+        // 6. Buang dari Antrean (pending_queue.json)
         removeFromPendingQueue(context, item.id)
 
         withContext(Dispatchers.Main) {
             onStatusChange(ItemStatus.SUCCESS)
-            delay(650) // Jeda waktu agar centang terlihat jelas oleh owner
+            delay(650)
             onFinished()
         }
     }
@@ -711,6 +738,28 @@ private fun saveContactToPhone(context: Context, nama: String, nomor: String): B
         e.printStackTrace()
         false
     }
+}
+
+@Synchronized
+private fun registerUserIndex(context: Context, senderName: String): Int {
+    val indexFile = File(Const.getDatabaseDir(context), "IndexIdNumber.json")
+    val indexJson = if (indexFile.exists() && indexFile.readText().isNotBlank()) {
+        try { JSONObject(indexFile.readText()) } catch (_: Exception) { JSONObject() }
+    } else JSONObject()
+
+    var maxId = 0
+    val keys = indexJson.keys()
+    while (keys.hasNext()) {
+        val key = keys.next()
+        key.toIntOrNull()?.let { id ->
+            if (id > maxId) maxId = id
+        }
+    }
+
+    val nextId = maxId + 1
+    indexJson.put(nextId.toString(), senderName)
+    indexFile.writeText(indexJson.toString(), Charsets.UTF_8)
+    return nextId
 }
 
 @Composable
