@@ -107,7 +107,7 @@ val rawSender = messagingStyle?.messages?.lastOrNull()?.person?.name?.toString()
 if (rawSender.startsWith("~")) {
     if (messageText.trim().startsWith("#")) {
         sendMsg(
-            "Akses Ditolak! Nomor WhatsApp Anda belum terdaftar / disetujui oleh Owner.",
+            "Akses Ditolak! Nomor WhatsApp Anda belum terdaftar / disetujui\Silahkan ke Pm bot dan ketik (Di Pribadi bot):\n#session <nomor> <nama>\n\nJika Aktivasi Database (Di Grup):\n#aktifkan.",
             currentNotification,
             currentBundle,
             currentRemoteInputs
@@ -124,7 +124,7 @@ if (matchResult == null) {
     // Format nama bukan "Nama (ID)", berarti belum diverifikasi oleh bot
     if (messageText.trim().startsWith("#")) {
         sendMsg(
-            "Akses Ditolak! Format profil Anda belum terverifikasi oleh sistem Owner.",
+            "Akses Ditolak! Format profil Anda belum terverifikasi oleh sistem.",
             currentNotification,
             currentBundle,
             currentRemoteInputs
@@ -150,7 +150,7 @@ val verifiedSender = "$charName ($charId)"
                     val lowerMsg = messageText.lowercase().trim()
 
                     if (isMainPkg) {
-    if (lowerMsg.startsWith("#sess")) {
+    if (lowerMsg.startsWith("#aktifkan")) {
         sendMsg(
             "Akun Anda sudah aktif dan terverifikasi sebagai '$verifiedSender'!",
             currentNotification,
@@ -205,7 +205,7 @@ val verifiedSender = "$charName ($charId)"
             val parts = trimmed.split(Regex("\\s+"))
             if (parts.size < 3) {
                 sendMsg(
-                    "Format salah! Ketik:\n#session <nomor_hp> <nama>\nContoh:\n#session 081234567890 Nama",
+                    "Format salah! Ketik:\n#session <nomor_hp> <nama>\nContoh:\n#session 081234567890 Nama\n\nUntuk Aktivasi (Di Grup):\n#aktifkan",
                     notification,
                     bundle,
                     remoteInputs
@@ -242,7 +242,7 @@ val verifiedSender = "$charName ($charId)"
             // 3. Cek apakah nomor sudah ada di Database Master
             if (isNumberInMasterDb(cleanNomor)) {
                 sendMsg(
-                    "Nomor $cleanNomor sudah terdaftar dalam sistem dan pernah disimpan sebelumnya!",
+                    "Nomor $cleanNomor sudah terdaftar dalam sistem dan pernah disimpan sebelumnya!\nButuh bantuan? *Chat/tanya di Grup*",
                     notification,
                     bundle,
                     remoteInputs
