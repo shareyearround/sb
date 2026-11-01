@@ -1,21 +1,46 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# -------------------------------------------------------------------------
+# Pengaturan Dasar Kotlin & Android
+# -------------------------------------------------------------------------
+-keepattributes *Annotation*,Signature,InnerClasses,EnclosingMethod
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# Jangan hentikan build jika ada missing reference dari library pihak ketiga
+-dontwarn **
+-ignorewarnings
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# Pertahankan metadata Kotlin (penting untuk Coroutines, Reflection, dll)
+-keep class kotlin.Metadata { *; }
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# Pertahankan class View kustom dan atributnya
+-keep public class * extends android.view.View {
+    public <init>(android.content.Context);
+    public <init>(android.content.Context, android.util.AttributeSet);
+    public <init>(android.content.Context, android.util.AttributeSet, int);
+    public void set*(...);
+}
+
+# Pertahankan Parcelable dan Serializable
+-keepclassmembers class * implements android.os.Parcelable {
+    static ** CREATOR;
+}
+-keepnames class * implements java.io.Serializable
+-keepclassmembers class * implements java.io.Serializable {
+    static final long serialVersionUID;
+    private static final java.io.ObjectStreamField[] serialPersistentFields;
+    !static !transient <fields>;
+    private void writeObject(java.io.ObjectOutputStream);
+    private void readObject(java.io.ObjectInputStream);
+    java.lang.Object writeReplace();
+    java.lang.Object readResolve();
+}
+
+# -------------------------------------------------------------------------
+# Data Model / Entity
+# (PENTING: Ganti nama package di bawah sesuai letak data class/model Anda)
+# -------------------------------------------------------------------------
+-keepclassmembers class * {
+    @com.google.gson.annotations.SerializedName <fields>;
+}
+# Contoh jika Anda punya package model:
+# -keep class com.package.anda.models.** { *; }
