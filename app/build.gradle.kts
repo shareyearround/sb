@@ -37,14 +37,26 @@ android {
         kotlinCompilerExtensionVersion = "1.5.14" 
     }
 
-    signingConfigs {
+signingConfigs {
+        create("release") {
+            val envKeystorePath = System.getenv("KEYSTORE_FILE")
+            if (envKeystorePath != null && file(envKeystorePath).exists()) {
+                storeFile = file(envKeystorePath)
+                storePassword = System.getenv("KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("KEY_ALIAS")
+                keyPassword = System.getenv("KEY_PASSWORD")
+            }
+        }
+    }
+
+    /*signingConfigs {
         create("release") {
             storeFile = file(localProperties.getProperty("RELEASE_STORE_FILE") ?: "")
             storePassword = localProperties.getProperty("RELEASE_STORE_PASSWORD")
             keyAlias = localProperties.getProperty("RELEASE_KEY_ALIAS")
             keyPassword = localProperties.getProperty("RELEASE_KEY_PASSWORD")
         }
-    }
+    }*/
     
     packaging {
         resources {
