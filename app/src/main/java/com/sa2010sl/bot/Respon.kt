@@ -3904,6 +3904,16 @@ object updatets {
     ● 18 Okt 26 | V-5.3.5-fix
     ▬ Fix Jelajah.
     ▭ Fix Tambang.
+
+    ● 1 Nov 26 | V-5.4.0-update
+    ▬ Add system guard.
+    ▭ Access with number.
+    ▬ Add #intro command.
+    ▭ Add id [name (id)].
+    
+    ● 2 Nov 26 | V-5.4.5-fix
+    ▬ Fix Database Error Read.
+    ▭ Add + Fix #aktifkan cmd.
     
     ▬▭▬▭▬▭▬▭▬▭▬▭▬▭
     ⚜️ Selamat Mencoba ⚜️""";
