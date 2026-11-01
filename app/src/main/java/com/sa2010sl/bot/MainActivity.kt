@@ -638,7 +638,7 @@ private fun processSaveRequest(
         masterFile.writeText(masterJson.toString(), Charsets.UTF_8)
 
         // 5. Buat File Database Karakter Awal: Nama_ID.json (Contoh: Zero_1.json)
-        val cleanFileName = "${item.nama}_$newId".replace(Regex("[^a-zA-Z0-9\\s]"), "").replace(Regex("\\s+"), "_")
+        val cleanFileName = "${item.nama}_$newId"
         val userGameFile = File(baseDir, "$cleanFileName.json")
         if (!userGameFile.exists()) {
             val initialUserData = JSONObject().apply {
