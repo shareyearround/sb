@@ -98,49 +98,76 @@ class NotificationReceiver : NotificationListenerService() {
                     val titleSplit = parseTitle(titleObj.toString())
                     val groupName = titleSplit.firstOrNull() ?: ""
 
-                    // 1. Ekstrak nomor HP asli pengirim via URI Kontak WhatsApp
-                    val senderPhone = getSenderPhoneNumberFromNotification(currentNotification)
+                    // Ambil nama pengirim dari MessagingStyle (Paling akurat) atau Fallback ke Title
+val messagingStyle = NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(currentNotification)
+val rawSender = messagingStyle?.messages?.lastOrNull()?.person?.name?.toString() ?: sender
 
-                    // 2. Dapatkan nama karakter resmi dari listdb.json
-                    val officialCharacterName = if (senderPhone != null) getRegisteredNameByPhone(senderPhone) else null
+// 1. Tolak jika ada tanda '~' (Tanda bahwa kontak belum disimpan di HP bot / Akun tiruan)
+if (rawSender.startsWith("~")) {
+    if (messageText.trim().startsWith("#")) {
+        sendMsg(
+            "Akses Ditolak! Nomor WhatsApp Anda belum terdaftar / disetujui oleh Owner.",
+            currentNotification,
+            currentBundle,
+            currentRemoteInputs
+        )
+    }
+    return@execute
+}
 
-                    // 3. Verifikasi Keamanan: Cegat jika belum disetujui / nomor palsu
-                    if (officialCharacterName == null) {
-                        val trimmedMsg = messageText.trim()
-                        if (trimmedMsg.startsWith("#")) {
-                            sendMsg(
-                                "Akses Ditolak! Nomor WhatsApp Anda belum terdaftar / disetujui oleh Owner. Silakan chat bot secara pribadi (Japri) untuk mendaftar:\n#session <nomor_hp> <nama>",
-                                currentNotification,
-                                currentBundle,
-                                currentRemoteInputs
-                            )
-                        }
-                        return@execute // Hentikan eksekusi, peniru tidak bisa memproses data siapapun
-                    }
+// 2. Pola Regex untuk membaca format "Nama (ID)"
+val senderPattern = Regex("""^(.+?)\s*\((\d+)\)$""")
+val matchResult = senderPattern.matchEntire(rawSender.trim())
+
+if (matchResult == null) {
+    // Format nama bukan "Nama (ID)", berarti belum diverifikasi oleh bot
+    if (messageText.trim().startsWith("#")) {
+        sendMsg(
+            "Akses Ditolak! Format profil Anda belum terverifikasi oleh sistem Owner.",
+            currentNotification,
+            currentBundle,
+            currentRemoteInputs
+        )
+    }
+    return@execute
+}
+
+val charName = matchResult.groupValues[1].trim()
+val charId = matchResult.groupValues[2]
+
+// 3. Validasi ke IndexIdNumber.json: Apakah ID ini benar milik charName?
+if (!isIdValidAndMatchesName(charId, charName)) {
+    sendMsg("Identitas akun tidak valid atau data korup!", currentNotification, currentBundle, currentRemoteInputs)
+    return@execute
+}
+
+// 4. KUNCI UTAMA: Kirim "$charName ($charId)" ke CommandManager!
+// 50+ file command akan otomatis mengubahnya menjadi "Nama_ID.json" tanpa konflik!
+val verifiedSender = "$charName ($charId)"
+
 
                     val lowerMsg = messageText.lowercase().trim()
 
                     if (isMainPkg) {
-                        if (lowerMsg.startsWith("#sess")) {
-                            sendMsg(
-                                "Akun Anda sudah aktif dan terverifikasi di database sebagai '$officialCharacterName'!",
-                                currentNotification,
-                                currentBundle,
-                                currentRemoteInputs
-                            )
-                        } else {
-                            // Oper officialCharacterName sebagai 'sender', bukan nama profil WhatsApp
-                            val reply = commandManager.process(officialCharacterName, messageText, true, groupName)
-                            if (reply != null) {
-                                sendMsg(reply, currentNotification, currentBundle, currentRemoteInputs)
-                            }
-                        }
-                    } else if (isSubPkg) {
-                        val reply = handleSubBotCommand(officialCharacterName, messageText)
-                        if (reply != null) {
-                            sendMsg(reply, currentNotification, currentBundle, currentRemoteInputs)
-                        }
-                    }
+    if (lowerMsg.startsWith("#sess")) {
+        sendMsg(
+            "Akun Anda sudah aktif dan terverifikasi sebagai '$verifiedSender'!",
+            currentNotification,
+            currentBundle,
+            currentRemoteInputs
+        )
+    } else {
+        val reply = commandManager.process(verifiedSender, messageText, true, groupName)
+        if (reply != null) {
+            sendMsg(reply, currentNotification, currentBundle, currentRemoteInputs)
+        }
+    }
+} else if (isSubPkg) {
+    val reply = handleSubBotCommand(verifiedSender, messageText)
+    if (reply != null) {
+        sendMsg(reply, currentNotification, currentBundle, currentRemoteInputs)
+    }
+}
                 }
             } catch (e: Exception) {
                 Log.e(Const.LOG, "Error processing notification: ${e.localizedMessage}")
@@ -148,113 +175,18 @@ class NotificationReceiver : NotificationListenerService() {
         }
     }
 
-    // ==========================================
-    // RESOLVER NOMOR TELEPON DARI NOTIFIKASI
-    // ==========================================
-    private fun getSenderPhoneNumberFromNotification(notification: Notification): String? {
-        val extras = notification.extras ?: return null
-
-        // Coba lewat MessagingStyle
-        try {
-            val messagingStyle = NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(notification)
-            val lastPerson = messagingStyle?.messages?.lastOrNull()?.person
-            val uriString = lastPerson?.uri
-            if (!uriString.isNullOrEmpty()) {
-                if (uriString.startsWith("tel:")) {
-                    return normalisasiNomor(uriString.substring(4))
-                }
-                val phone = resolvePhoneNumber(Uri.parse(uriString))
-                if (phone != null) return phone
-            }
-        } catch (_: Exception) {}
-
-        // Coba lewat raw bundle Notification.EXTRA_MESSAGES (Android P+)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            try {
-                val messages = extras.getParcelableArray(Notification.EXTRA_MESSAGES)
-                if (messages != null && messages.isNotEmpty()) {
-                    val lastMsg = messages.last() as? Bundle
-                    val person = lastMsg?.getParcelable<android.app.Person>("sender_person")
-                    val uriString = person?.uri
-                    if (!uriString.isNullOrEmpty()) {
-                        if (uriString.startsWith("tel:")) {
-                            return normalisasiNomor(uriString.substring(4))
-                        }
-                        val phone = resolvePhoneNumber(Uri.parse(uriString))
-                        if (phone != null) return phone
-                    }
-                }
-            } catch (_: Exception) {}
-        }
-
-        // Coba lewat Notification.EXTRA_PEOPLE_LIST
-        try {
-            val people = extras.getParcelableArrayList<android.app.Person>(Notification.EXTRA_PEOPLE_LIST)
-            if (!people.isNullOrEmpty()) {
-                val uriString = people[0].uri
-                if (!uriString.isNullOrEmpty()) {
-                    if (uriString.startsWith("tel:")) {
-                        return normalisasiNomor(uriString.substring(4))
-                    }
-                    return resolvePhoneNumber(Uri.parse(uriString))
-                }
-            }
-        } catch (_: Exception) {}
-
-        return null
+    private fun isIdValidAndMatchesName(userId: String, characterName: String): Boolean {
+    val indexFile = File(Const.getDatabaseDir(this), "IndexIdNumber.json")
+    if (!indexFile.exists()) return false
+    return try {
+        val json = JSONObject(indexFile.readText(Charsets.UTF_8))
+        val registeredName = json.optString(userId, "")
+        registeredName.equals(characterName, ignoreCase = true)
+    } catch (_: Exception) {
+        false
     }
+}
 
-    private fun resolvePhoneNumber(contactUri: Uri): String? {
-        var phoneNumber: String? = null
-        try {
-            // Coba query langsung kolom Phone.NUMBER
-            val directCursor = contentResolver.query(
-                contactUri,
-                arrayOf(ContactsContract.CommonDataKinds.Phone.NUMBER),
-                null, null, null
-            )
-            directCursor?.use {
-                if (it.moveToFirst()) {
-                    val idx = it.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER)
-                    if (idx != -1) {
-                        val raw = it.getString(idx)
-                        if (!raw.isNullOrEmpty()) {
-                            phoneNumber = normalisasiNomor(raw)
-                            return phoneNumber
-                        }
-                    }
-                }
-            }
-
-            // Jika bukan direct URI, cari Contact ID lalu query ke ContactsContract.Phone
-            val cursor = contentResolver.query(
-                contactUri,
-                arrayOf(ContactsContract.Contacts._ID),
-                null, null, null
-            )
-            cursor?.use {
-                if (it.moveToFirst()) {
-                    val contactId = it.getString(it.getColumnIndexOrThrow(ContactsContract.Contacts._ID))
-                    val phoneCursor = contentResolver.query(
-                        ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
-                        arrayOf(ContactsContract.CommonDataKinds.Phone.NUMBER),
-                        "${ContactsContract.CommonDataKinds.Phone.CONTACT_ID} = ?",
-                        arrayOf(contactId),
-                        null
-                    )
-                    phoneCursor?.use { pCur ->
-                        if (pCur.moveToFirst()) {
-                            val raw = pCur.getString(pCur.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Phone.NUMBER))
-                            phoneNumber = normalisasiNomor(raw)
-                        }
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            Log.e(Const.LOG, "Gagal query kontak: ${e.message}")
-        }
-        return phoneNumber
-    }
 
     // ==========================================
     // LOGIKA PERMINTAAN SESI DARI CHAT PRIBADI
@@ -608,10 +540,10 @@ class NotificationReceiver : NotificationListenerService() {
     }
 
     private fun parseTitle(title: String): Array<String> {
-        val titleSplit = title.split(Regex("[^\\s\\w\\d]"))
-        return titleSplit.filter { it.isNotBlank() }.map { it.trim() }.toTypedArray()
+    val titleSplit = title.split(":")
+    return titleSplit.filter { it.isNotBlank() }.map { it.trim() }.toTypedArray()
     }
-
+    
     private fun sanitizeUsername(username: String): String {
         return username.replace(Regex("[^a-zA-Z0-9\\s]"), "").replace(Regex("\\s+"), "_")
     }
