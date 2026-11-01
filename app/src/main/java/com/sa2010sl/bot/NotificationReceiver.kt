@@ -107,7 +107,7 @@ val rawSender = messagingStyle?.messages?.lastOrNull()?.person?.name?.toString()
 if (rawSender.startsWith("~")) {
     if (messageText.trim().startsWith("#")) {
         sendMsg(
-            "Akses Ditolak! Nomor WhatsApp Anda belum terdaftar / disetujui\Silahkan ke Pm bot dan ketik (Di Pribadi bot):\n#session <nomor> <nama>\n\nJika Aktivasi Database (Di Grup):\n#aktifkan.",
+            "Akses Ditolak! Nomor WhatsApp Anda belum terdaftar / disetujui\nSilahkan ke Pm bot dan ketik (Di Pribadi bot):\n#session <nomor> <nama>\n\nJika Aktivasi Database (Di Grup):\n#aktifkan.",
             currentNotification,
             currentBundle,
             currentRemoteInputs
