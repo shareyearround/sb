@@ -1176,7 +1176,7 @@ private fun processSendGift(context: Context, scope: CoroutineScope, targetId: S
             val indexJson = JSONObject(indexFile.readText())
             if (!indexJson.has(targetId)) return@launch
             val targetUsername = indexJson.getString(targetId)
-            val cleanName = targetUsername.replace(Regex("[^a-zA-Z0-9\\s]"), "").replace(Regex("\\s+"), "_")
+            val cleanName = "${targetUsername}_$targetId".replace(Regex("[^a-zA-Z0-9\\s]"), "").replace(Regex("\\s+"), "_")
             val userFile = File(Const.getDatabaseDir(context), "$cleanName.json")
             if (!userFile.exists()) return@launch
             val userJson = JSONObject(userFile.readText())
@@ -1257,7 +1257,7 @@ private fun processReviveUser(context: Context, scope: CoroutineScope, targetId:
             val indexJson = JSONObject(indexFile.readText())
             if (!indexJson.has(targetId)) return@launch
             val targetUsername = indexJson.getString(targetId)
-            val cleanName = targetUsername.replace(Regex("[^a-zA-Z0-9\\s]"), "").replace(Regex("\\s+"), "_")
+            val cleanName = "${targetUsername}_$targetId".replace(Regex("[^a-zA-Z0-9\\s]"), "").replace(Regex("\\s+"), "_")
             val userFile = File(Const.getDatabaseDir(context), "$cleanName.json")
             if (!userFile.exists()) return@launch
             val userJson = JSONObject(userFile.readText())
@@ -1287,7 +1287,7 @@ private fun processActivateVip(context: Context, scope: CoroutineScope, targetId
             val indexJson = JSONObject(indexFile.readText())
             if (!indexJson.has(targetId)) return@launch
             val targetUsername = indexJson.getString(targetId)
-            val cleanName = targetUsername.replace(Regex("[^a-zA-Z0-9\\s]"), "").replace(Regex("\\s+"), "_")
+            val cleanName = "${targetUsername}_$targetId".replace(Regex("[^a-zA-Z0-9\\s]"), "").replace(Regex("\\s+"), "_")
             val userFile = File(Const.getDatabaseDir(context), "$cleanName.json")
             if (!userFile.exists()) return@launch
             val userJson = JSONObject(userFile.readText())
