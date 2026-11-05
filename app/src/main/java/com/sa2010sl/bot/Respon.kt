@@ -2155,6 +2155,9 @@ object menu {
     ├ #tebaknegara
     ├ #tebakkallimat
     ├ #rd
+    ├ #tebakhewan
+    ├ #tebakfilm
+    ├ #tebakprofesi
     └ Uji wawasanmu!
     
     ● [ 📐 MATH & LOGIC ]
@@ -3919,6 +3922,9 @@ object updatets {
     ● 5 Nov 26 | V-5.5.0-update
     ▬ Fix G/V/H.
     ▭ Add #rd game.
+    ▬ Add #tebakhewan.
+    ▭ Add #tebakfilm.
+    ▬ Add #tebakprofesi.
     
     ▬▭▬▭▬▭▬▭▬▭▬▭▬▭
     ⚜️ Selamat Mencoba ⚜️""";
