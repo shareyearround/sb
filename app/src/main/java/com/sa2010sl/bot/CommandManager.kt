@@ -48,6 +48,7 @@ class CommandManager(private val context: Context) {
         RaidCommand(context),
         MancingCommand(context),
         FoodCommand(context),
+        TriviaGameCommand(context, "#rd", "Riddle", "riddle.json"),
         TriviaGameCommand(context, "#caklontong", "Cak Lontong", "caklontong.json"),
         TriviaGameCommand(context, "#siapakahaku", "Siapakah Aku", "siapakahaku.json"),
         TriviaGameCommand(context, "#tebakkalimat", "Tebak Kalimat", "tebakkalimat.json"),
