@@ -1163,22 +1163,60 @@ fun CyberDropdown(label: String, options: List<String>, selectedOption: String, 
     }
 }
 
-private fun processSendGift(context: Context, scope: CoroutineScope, targetId: String, amountStr: String, giftType: String, onSuccess: () -> Unit) {
+private fun processSendGift(
+    context: Context,
+    scope: kotlinx.coroutines.CoroutineScope,
+    targetId: String,
+    amountStr: String,
+    giftType: String,
+    onSuccess: () -> Unit
+) {
     if (targetId.isBlank() || amountStr.isBlank()) {
-        Toast.makeText(context, "Data Invalid", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, "Data Target ID / Amount Invalid", Toast.LENGTH_SHORT).show()
         return
     }
-    val amount = amountStr.toIntOrNull() ?: return
+    val amount = amountStr.toIntOrNull()
+    if (amount == null) {
+        Toast.makeText(context, "Amount harus berupa angka!", Toast.LENGTH_SHORT).show()
+        return
+    }
+
     scope.launch(Dispatchers.IO) {
         try {
-            val indexFile = File(Const.getDatabaseDir(context), "IndexIdNumber.json")
-            if (!indexFile.exists()) return@launch
+            val baseDir = Const.getDatabaseDir(context)
+            val indexFile = File(baseDir, "IndexIdNumber.json")
+            if (!indexFile.exists()) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "IndexIdNumber.json tidak ditemukan!", Toast.LENGTH_SHORT).show()
+                }
+                return@launch
+            }
+
             val indexJson = JSONObject(indexFile.readText())
-            if (!indexJson.has(targetId)) return@launch
+            if (!indexJson.has(targetId)) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "Target ID $targetId tidak ada di Index!", Toast.LENGTH_SHORT).show()
+                }
+                return@launch
+            }
+
             val targetUsername = indexJson.getString(targetId)
-            val cleanName = "${targetUsername}_$targetId".replace(Regex("[^a-zA-Z0-9\\s]"), "").replace(Regex("\\s+"), "_")
-            val userFile = File(Const.getDatabaseDir(context), "$cleanName.json")
-            if (!userFile.exists()) return@launch
+            val cleanUser = targetUsername.replace(Regex("[^a-zA-Z0-9]"), "")
+            
+            // Cek file dengan format Nama_ID.json, jika tidak ada fallback ke NamaID.json
+            var userFile = File(baseDir, "${cleanUser}_$targetId.json")
+            if (!userFile.exists()) {
+                val fallbackFile = File(baseDir, "$cleanUser$targetId.json")
+                if (fallbackFile.exists()) {
+                    userFile = fallbackFile
+                } else {
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(context, "File database ${userFile.name} tidak ditemukan!", Toast.LENGTH_LONG).show()
+                    }
+                    return@launch
+                }
+            }
+
             val userJson = JSONObject(userFile.readText())
             when (giftType.lowercase()) {
                 "exp" -> userJson.put("exp", userJson.optInt("exp", 0) + amount)
@@ -1187,11 +1225,16 @@ private fun processSendGift(context: Context, scope: CoroutineScope, targetId: S
                 "koin" -> userJson.put("koin", userJson.optInt("koin", 1) + amount)
             }
             userFile.writeText(userJson.toString())
+
             withContext(Dispatchers.Main) {
-                Toast.makeText(context, "Success", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Berhasil transfer $amount $giftType ke $targetUsername!", Toast.LENGTH_SHORT).show()
                 onSuccess()
             }
-        } catch (e: Exception) {}
+        } catch (e: Exception) {
+            withContext(Dispatchers.Main) {
+                Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 }
 
@@ -1248,18 +1291,40 @@ private fun processDeleteRedeem(context: Context, scope: CoroutineScope, selecte
     }
 }
 
-private fun processReviveUser(context: Context, scope: CoroutineScope, targetId: String, onSuccess: () -> Unit) {
-    if (targetId.isBlank()) return
+private fun processReviveUser(
+    context: Context,
+    scope: kotlinx.coroutines.CoroutineScope,
+    targetId: String,
+    onSuccess: () -> Unit
+) {
+    if (targetId.isBlank()) {
+        Toast.makeText(context, "Target ID tidak boleh kosong!", Toast.LENGTH_SHORT).show()
+        return
+    }
+
     scope.launch(Dispatchers.IO) {
         try {
-            val indexFile = File(Const.getDatabaseDir(context), "IndexIdNumber.json")
+            val baseDir = Const.getDatabaseDir(context)
+            val indexFile = File(baseDir, "IndexIdNumber.json")
             if (!indexFile.exists()) return@launch
+
             val indexJson = JSONObject(indexFile.readText())
-            if (!indexJson.has(targetId)) return@launch
+            if (!indexJson.has(targetId)) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "Target ID $targetId tidak ditemukan!", Toast.LENGTH_SHORT).show()
+                }
+                return@launch
+            }
+
             val targetUsername = indexJson.getString(targetId)
-            val cleanName = "${targetUsername}_$targetId".replace(Regex("[^a-zA-Z0-9\\s]"), "").replace(Regex("\\s+"), "_")
-            val userFile = File(Const.getDatabaseDir(context), "$cleanName.json")
-            if (!userFile.exists()) return@launch
+            val cleanUser = targetUsername.replace(Regex("[^a-zA-Z0-9]"), "")
+            
+            var userFile = File(baseDir, "${cleanUser}_$targetId.json")
+            if (!userFile.exists()) {
+                val fallbackFile = File(baseDir, "$cleanUser$targetId.json")
+                if (fallbackFile.exists()) userFile = fallbackFile else return@launch
+            }
+
             val userJson = JSONObject(userFile.readText())
             val maxHp = userJson.optInt("max_hp", 20)
             userJson.put("dead", false)
@@ -1269,27 +1334,56 @@ private fun processReviveUser(context: Context, scope: CoroutineScope, targetId:
             userJson.remove("monster_hp")
             userJson.remove("monster_max_hp")
             userFile.writeText(userJson.toString())
+
             withContext(Dispatchers.Main) {
-                Toast.makeText(context, "Revived", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "User $targetUsername berhasil di-Revive!", Toast.LENGTH_SHORT).show()
                 onSuccess()
             }
-        } catch (e: Exception) {}
+        } catch (e: Exception) {
+            withContext(Dispatchers.Main) {
+                Toast.makeText(context, "Error Revive: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 }
 
-private fun processActivateVip(context: Context, scope: CoroutineScope, targetId: String, durationStr: String, selectedTier: String, onSuccess: () -> Unit) {
-    if (targetId.isBlank() || durationStr.isBlank()) return
+private fun processActivateVip(
+    context: Context,
+    scope: kotlinx.coroutines.CoroutineScope,
+    targetId: String,
+    durationStr: String,
+    selectedTier: String,
+    onSuccess: () -> Unit
+) {
+    if (targetId.isBlank() || durationStr.isBlank()) {
+        Toast.makeText(context, "Data VIP tidak lengkap!", Toast.LENGTH_SHORT).show()
+        return
+    }
     val days = durationStr.toLongOrNull() ?: return
+
     scope.launch(Dispatchers.IO) {
         try {
-            val indexFile = File(Const.getDatabaseDir(context), "IndexIdNumber.json")
+            val baseDir = Const.getDatabaseDir(context)
+            val indexFile = File(baseDir, "IndexIdNumber.json")
             if (!indexFile.exists()) return@launch
+
             val indexJson = JSONObject(indexFile.readText())
-            if (!indexJson.has(targetId)) return@launch
+            if (!indexJson.has(targetId)) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "Target ID $targetId tidak ditemukan!", Toast.LENGTH_SHORT).show()
+                }
+                return@launch
+            }
+
             val targetUsername = indexJson.getString(targetId)
-            val cleanName = "${targetUsername}_$targetId".replace(Regex("[^a-zA-Z0-9\\s]"), "").replace(Regex("\\s+"), "_")
-            val userFile = File(Const.getDatabaseDir(context), "$cleanName.json")
-            if (!userFile.exists()) return@launch
+            val cleanUser = targetUsername.replace(Regex("[^a-zA-Z0-9]"), "")
+            
+            var userFile = File(baseDir, "${cleanUser}_$targetId.json")
+            if (!userFile.exists()) {
+                val fallbackFile = File(baseDir, "$cleanUser$targetId.json")
+                if (fallbackFile.exists()) userFile = fallbackFile else return@launch
+            }
+
             val userJson = JSONObject(userFile.readText())
             val now = System.currentTimeMillis()
             val currentExpired = userJson.optLong("vip_expired", 0)
@@ -1312,10 +1406,15 @@ private fun processActivateVip(context: Context, scope: CoroutineScope, targetId
             userJson.put("vip_expired", newExpired)
             userJson.put("MaxChat", maxChat)
             userFile.writeText(userJson.toString())
+
             withContext(Dispatchers.Main) {
-                Toast.makeText(context, "VIP Activated", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "VIP $selectedTier berhasil diaktifkan untuk $targetUsername!", Toast.LENGTH_SHORT).show()
                 onSuccess()
             }
-        } catch (e: Exception) {}
+        } catch (e: Exception) {
+            withContext(Dispatchers.Main) {
+                Toast.makeText(context, "Error VIP: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 }
