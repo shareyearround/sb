@@ -2154,6 +2154,7 @@ object menu {
     ├ #tebakkimia
     ├ #tebaknegara
     ├ #tebakkallimat
+    ├ #rd
     └ Uji wawasanmu!
     
     ● [ 📐 MATH & LOGIC ]
@@ -3914,6 +3915,10 @@ object updatets {
     ● 2 Nov 26 | V-5.4.5-fix
     ▬ Fix Database Error Read.
     ▭ Add + Fix #aktifkan cmd.
+
+    ● 5 Nov 26 | V-5.5.0-update
+    ▬ Fix G/V/H.
+    ▭ Add #rd game.
     
     ▬▭▬▭▬▭▬▭▬▭▬▭▬▭
     ⚜️ Selamat Mencoba ⚜️""";
