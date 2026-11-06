@@ -702,6 +702,7 @@ private fun removeFromPendingQueue(context: Context, itemId: String) {
 private fun saveContactToPhone(context: Context, nama: String, nomor: String): Boolean {
     return try {
         val ops = ArrayList<ContentProviderOperation>()
+        val formattedPhone = if (nomor.startsWith("+")) nomor else "+$nomor"
 
         ops.add(
             ContentProviderOperation.newInsert(ContactsContract.RawContacts.CONTENT_URI)
@@ -727,7 +728,7 @@ private fun saveContactToPhone(context: Context, nama: String, nomor: String): B
                 .withYieldAllowed(true)
                 .withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID, 0)
                 .withValue(ContactsContract.Data.MIMETYPE, ContactsContract.CommonDataKinds.Phone.CONTENT_ITEM_TYPE)
-                .withValue(ContactsContract.CommonDataKinds.Phone.NUMBER, nomor)
+                .withValue(ContactsContract.CommonDataKinds.Phone.NUMBER, formattedPhone)
                 .withValue(ContactsContract.CommonDataKinds.Phone.TYPE, ContactsContract.CommonDataKinds.Phone.TYPE_MOBILE)
                 .build()
         )
