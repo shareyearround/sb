@@ -218,15 +218,18 @@ val verifiedSender = "$charName ($charId)"
             val cleanNomor = normalisasiNomor(rawNomor)
 
             // 1. Validasi Format Nomor Indonesia
-            if (!cleanNomor.matches(Regex("^628[0-9]{8,12}$"))) {
-                sendMsg(
-                    "Format nomor tidak valid! Gunakan format nomor telepon Indonesia yang benar (contoh: 081234567890 atau 6281234567890).",
-                    notification,
-                    bundle,
-                    remoteInputs
-                )
-                return
-            }
+val isValidIndo = cleanNomor.matches(Regex("^628[0-9]{8,12}$"))
+val isValidMalay = cleanNomor.matches(Regex("^601[0-9]{8,9}$"))
+
+if (!isValidIndo && !isValidMalay) {
+    sendMsg(
+        "Format nomor tidak valid! Gunakan nomor Indonesia (08xx / 628xx) atau Malaysia (01xx / 601xx).",
+        notification,
+        bundle,
+        remoteInputs
+    )
+    return
+}
 
             // 2. Validasi Nama Karakter
             if (namaKarakter.length < 2 || namaKarakter.length > 20) {
@@ -293,12 +296,16 @@ val verifiedSender = "$charName ($charId)"
     }
 
     private fun normalisasiNomor(raw: String): String {
-        var clean = raw.replace(Regex("[^0-9]"), "")
-        if (clean.startsWith("0")) {
-            clean = "62" + clean.substring(1)
-        }
-        return clean
+    var clean = raw.replace(Regex("[^0-9]"), "")
+    if (clean.startsWith("08")) {
+        // Awalan lokal seluler Indonesia (08...) -> 628...
+        clean = "62" + clean.substring(1)
+    } else if (clean.startsWith("01")) {
+        // Awalan lokal seluler Malaysia (010 - 019) -> 601...
+        clean = "60" + clean.substring(1)
     }
+    return clean
+}
 
     @Synchronized
     private fun getRegisteredNameByPhone(nomor: String): String? {
