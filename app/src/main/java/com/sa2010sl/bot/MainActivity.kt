@@ -638,8 +638,9 @@ private fun processSaveRequest(
         masterFile.writeText(masterJson.toString(), Charsets.UTF_8)
 
         // 5. Buat File Database Karakter Awal: Nama_ID.json (Contoh: Zero_1.json)
-        val cleanFileName = "${item.nama}_$newId"
-        val userGameFile = File(baseDir, "$cleanFileName.json")
+        val sanitizedName = item.nama.replace(Regex("[^a-zA-Z0-9\\s]"), "").trim().replace(Regex("\\s+"), "_")
+val cleanFileName = "${sanitizedName}_$newId"
+val userGameFile = File(baseDir, "$cleanFileName.json")
         if (!userGameFile.exists()) {
             val initialUserData = JSONObject().apply {
                 put("id", newId)
@@ -1202,9 +1203,7 @@ private fun processSendGift(
             }
 
             val targetUsername = indexJson.getString(targetId)
-            val cleanUser = targetUsername.replace(Regex("[^a-zA-Z0-9]"), "")
-            
-            // Cek file dengan format Nama_ID.json, jika tidak ada fallback ke NamaID.json
+            val cleanUser = targetUsername.replace(Regex("[^a-zA-Z0-9\\s]"), "").trim().replace(Regex("\\s+"), "_")
             var userFile = File(baseDir, "${cleanUser}_$targetId.json")
             if (!userFile.exists()) {
                 val fallbackFile = File(baseDir, "$cleanUser$targetId.json")
@@ -1318,8 +1317,7 @@ private fun processReviveUser(
             }
 
             val targetUsername = indexJson.getString(targetId)
-            val cleanUser = targetUsername.replace(Regex("[^a-zA-Z0-9]"), "")
-            
+            val cleanUser = targetUsername.replace(Regex("[^a-zA-Z0-9\\s]"), "").trim().replace(Regex("\\s+"), "_")
             var userFile = File(baseDir, "${cleanUser}_$targetId.json")
             if (!userFile.exists()) {
                 val fallbackFile = File(baseDir, "$cleanUser$targetId.json")
@@ -1377,8 +1375,7 @@ private fun processActivateVip(
             }
 
             val targetUsername = indexJson.getString(targetId)
-            val cleanUser = targetUsername.replace(Regex("[^a-zA-Z0-9]"), "")
-            
+            val cleanUser = targetUsername.replace(Regex("[^a-zA-Z0-9\\s]"), "").trim().replace(Regex("\\s+"), "_")
             var userFile = File(baseDir, "${cleanUser}_$targetId.json")
             if (!userFile.exists()) {
                 val fallbackFile = File(baseDir, "$cleanUser$targetId.json")
