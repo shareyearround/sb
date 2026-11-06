@@ -115,7 +115,7 @@ class PvpCommand constructor(
             }
 
             val targetUsername = indexJson.getString(targetIdStr)
-            val cleanTarget = PvpManager.sanitizeUsername(targetUsername)
+            val cleanTarget = PvpManager.sanitizeUsername("$targetUsername ($targetIdStr)")
 
             if (cleanTarget == cleanSender) {
                 return Respon.pvp.pvp15
@@ -220,10 +220,18 @@ class PvpCommand constructor(
                     rewardLog = Respon.pvp.pvp27.format(stolenExp, rewardExp)
                 }
 
-                senderJson.put("ep", senderJson.optInt("ep", 0) + 15)
+                                senderJson.put("ep", senderJson.optInt("ep", 0) + 15)
 
-                PvpManager.resetPvpState(context, cleanSender)
-                PvpManager.resetPvpState(context, opponentClean)
+                // Reset status PvP langsung di objek JSON sebelum ditulis ke file
+                senderJson.put("pvp_state", "none")
+                senderJson.put("pvp_opponent", "")
+                senderJson.put("pvp_time", 0L)
+                senderJson.put("pvp_surrender_ask", false)
+
+                opponentJson.put("pvp_state", "none")
+                opponentJson.put("pvp_opponent", "")
+                opponentJson.put("pvp_time", 0L)
+                opponentJson.put("pvp_surrender_ask", false)
 
                 PvpManager.writeFile(senderFile, senderJson.toString())
                 PvpManager.writeFile(opponentFile, opponentJson.toString())
