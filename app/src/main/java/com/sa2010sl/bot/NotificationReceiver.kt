@@ -548,8 +548,16 @@ if (!isValidIndo && !isValidMalay) {
     }
 
     private fun parseTitle(title: String): Array<String> {
-    val titleSplit = title.split(":")
-    return titleSplit.filter { it.isNotBlank() }.map { it.trim() }.toTypedArray()
+    val colonIndex = title.indexOf(":")
+    if (colonIndex == -1) return arrayOf(title.trim())
+
+    val rawGroup = title.substring(0, colonIndex).trim()
+    val rawSender = title.substring(colonIndex + 1).trim()
+
+    // Bersihkan sufiks jumlah pesan bawaan WhatsApp seperti "(2 pesan)" atau "(3 messages)"
+    val cleanGroup = rawGroup.replace(Regex("""\s*\(\d+\s+[^)]+\)$"""), "").trim()
+
+    return arrayOf(cleanGroup, rawSender)
     }
     
     private fun sanitizeUsername(username: String): String {
